@@ -51,9 +51,10 @@ func loadEnv() {
 func NewPostgresStore() (*PostgresStore, error) {
 	dbUser := os.Getenv("DB_USER")
 	dbName := os.Getenv("DB_NAME")
+	dbHost := os.Getenv("DB_HOST")
 	dbPassword := os.Getenv("DB_PASSWORD")
 
-	connStr := fmt.Sprintf("user=%s dbname=%s password=%s sslmode=disable", dbUser, dbName, dbPassword)
+	connStr := fmt.Sprintf("host=%s user=%s dbname=%s password=%s port=5432 sslmode=disable", dbHost, dbUser, dbName, dbPassword)
 
 	db, err := sql.Open("postgres", connStr)
 
