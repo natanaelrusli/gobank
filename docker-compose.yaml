@@ -1,0 +1,20 @@
+version: '3.1'
+services:
+  db:
+    image: postgres:12.6-alpine
+    restart: always
+    container_name: postgres12_6
+    user: postgres
+    environment:
+      - "POSTGRES_PASSWORD=postgres"
+      - "ES_JAVA_OPTS=-Xms1024m -Xmx3072m"
+    networks:
+      - esnet
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
+
+networks:
+  esnet:
