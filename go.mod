@@ -1,6 +1,6 @@
 module github.com/natanaelrusli/gobank
 
-go 1.21.0
+go 1.18
 
 require github.com/gorilla/mux v1.8.0
 
