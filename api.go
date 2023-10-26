@@ -58,7 +58,26 @@ func (s *APIServer) handleLogin(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return WriteJSON(w, http.StatusOK, req)
+	// number : 7409
+	acc, err := s.store.GetAccountByNumber(int(req.Number))
+	if err != nil {
+		return err
+	}
+
+	if !acc.ValidPassword(req.Password) {
+		return fmt.Errorf("not authenticated")
+	}
+
+	token, err := createJWT(acc)
+
+	if err != nil {
+		return err
+	}
+
+	return WriteJSON(w, http.StatusOK, &LoginResponse{
+		Number: acc.Number,
+		Token:  token,
+	})
 }
 
 func (s *APIServer) handleAccount(w http.ResponseWriter, r *http.Request) error {
