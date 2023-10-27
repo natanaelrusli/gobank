@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -11,9 +12,6 @@ import (
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
 )
-
-// JWT for account id 9
-// eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJFeHBpcmVzQXQiOjE1MDAwLCJhY2NvdW50TnVtYmVyIjoxNn0.XSal0KUtGuGJMztg2hnyJ_ht8jqQXJhvYXu32NRWgNo
 
 func makeHTTPHanldeFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +37,7 @@ func (s *APIServer) Run() {
 	router.HandleFunc("/account/{id}", makeHTTPHanldeFunc(s.handleUpdateAccount)).Methods("PUT")
 	router.HandleFunc("/accounts", makeHTTPHanldeFunc(s.handleGetAccount))
 	router.HandleFunc("/transfer", makeHTTPHanldeFunc(s.handleTransfer)).Methods("POST")
+	router.HandleFunc("/topup", makeHTTPHanldeFunc(s.handleTopup)).Methods("POST")
 
 	log.Println("JSON API Server Running on port ", s.listenAddr)
 
@@ -127,7 +126,13 @@ func (s *APIServer) handleGetAccountById(w http.ResponseWriter, r *http.Request)
 func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) error {
 	createAccountReq := new(CreateAccountRequest)
 	if err := json.NewDecoder(r.Body).Decode(createAccountReq); err != nil {
-		return err
+		return errors.New("bad request")
+	}
+
+	if createAccountReq.FirstName == "" ||
+		createAccountReq.LastName == "" ||
+		createAccountReq.Password == "" {
+		return errors.New("bad request")
 	}
 
 	account, err := NewAccount(createAccountReq.FirstName, createAccountReq.LastName, createAccountReq.Password)
@@ -182,6 +187,36 @@ func (s *APIServer) handleUpdateAccount(w http.ResponseWriter, r *http.Request) 
 	}
 
 	return WriteJSON(w, http.StatusOK, "updated")
+}
+
+func (s *APIServer) handleTopup(w http.ResponseWriter, r *http.Request) error {
+	// check if the user number exists
+	topupReq := new(TopupReq)
+	if err := json.NewDecoder(r.Body).Decode(topupReq); err != nil {
+		return err
+	}
+
+	tokenString := r.Header.Get("x-jwt-token")
+	token, err := validateJWT(tokenString)
+
+	if err != nil {
+		return err
+	}
+
+	claims := token.Claims.(jwt.MapClaims)
+	accountNumber := int(claims["accountNumber"].(float64))
+
+	// get the account by number
+	acc, err := s.store.GetAccountByNumber(accountNumber)
+	if err != nil {
+		return err
+	}
+
+	// update the balance
+	updatedAmount := acc.Balance + topupReq.Amount
+	s.store.UpdateBalance(acc.Number, updatedAmount)
+
+	return WriteJSON(w, http.StatusOK, acc)
 }
 
 func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error {

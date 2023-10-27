@@ -1,1 +1,2 @@
 - Create claims struct
+- Refactor projetc structure to follow hexagonal architecture

@@ -33,6 +33,10 @@ type TransferRequest struct {
 	Amount    int `json:"amount"`
 }
 
+type TopupReq struct {
+	Amount int64 `json:"amount"`
+}
+
 func (a *Account) ValidPassword(pw string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(a.EncryptedPassword), []byte(pw))
 
